@@ -1,0 +1,16 @@
+SELECT ?node ?value ?relationType
+        WHERE {
+            ?collection void:subset|hydra:view|^dcterms:isPartOf " + url + " ;
+                        tree:relation [
+                              a ?relationType ;
+                              tree:value ?value ;
+                              tree:node ?node
+                        ] .
+        }
+
+
+SELECT ?member
+WHERE {
+   ?collection void:subset|hydra:view|^dcterms:isPartOf " + url + " ;
+               hydra:member ?member .
+}

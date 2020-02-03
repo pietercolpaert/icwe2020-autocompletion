@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title property="foaf:name schema:name">Cacheable autocompletion on the Web</title>
+  <link rel="stylesheet" media="screen" href="styles/screen.css" />
+  <link rel="stylesheet" media="print"  href="styles/print.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" media="all"    href="styles/katex.css" />
+  <meta name="citation_title" content="Cacheable autocompletion on the Web">
+  <meta name="citation_author" content="Ruben Dedecker" />
+  <meta name="citation_author" content="Pieter Colpaert" />
+  <meta name="citation_author" content="Ruben Verborgh" />
+  
+  <meta name="citation_publication_date" content="2020/02/03" />
+</head>
+
+<body prefix="dctypes: http://purl.org/dc/dcmitype/ pimspace: http://www.w3.org/ns/pim/space# rsa: http://www.w3.org/ns/auth/rsa# cert: http://www.w3.org/ns/auth/cert# wgs: http://www.w3.org/2003/01/geo/wgs84_pos# biblio: http://purl.org/net/biblio# bibo: http://purl.org/ontology/bibo/ book: http://purl.org/NET/book/vocab# ov: http://open.vocab.org/terms/ doap: http://usefulinc.com/ns/doap# dbr: http://dbpedia.org/resource/ dbp: http://dbpedia.org/property/ sio: http://semanticscience.org/resource/ opmw: http://www.opmw.org/ontology/ deo: http://purl.org/spar/deo/ doco: http://purl.org/spar/doco/ cito: http://purl.org/spar/cito/ fabio: http://purl.org/spar/fabio/ solid: http://www.w3.org/ns/solid/terms# acl: http://www.w3.org/ns/auth/acl# dio: https://w3id.org/dio# lsc: http://linkedscience.org/lsc/ns#" typeof="schema:CreativeWork sioc:Post prov:Entity lsc:Research">
+  <header>
+  <h1 id="cacheable-autocompletion-on-the-web">Cacheable autocompletion on the Web</h1>
+
+  <ul id="authors">
+    <li><a rev="lsc:participatesIn" property="foaf:maker schema:creator schema:author schema:publisher" href="https://github.com/dexagod/" typeof="foaf:Person schema:Person" resource="#rubendd">Ruben Dedecker</a></li>
+    <li><a rev="lsc:participatesIn" property="foaf:maker schema:creator schema:author schema:publisher" href="https://pietercolpaert.be/" typeof="foaf:Person schema:Person" resource="https://pietercolpaert.be/#me">Pieter Colpaert</a></li>
+    <li><a rev="lsc:participatesIn" property="foaf:maker schema:creator schema:author schema:publisher" href="https://ruben.verborgh.org/" typeof="foaf:Person schema:Person" resource="https://ruben.verborgh.org/profile/#me">Ruben Verborgh</a></li>
+  </ul>
+
+  <ul id="affiliations">
+    <li id="idlab">IDLab,
+          Department of Electronics and Information Systems,
+          Ghent University – imec</li>
+  </ul>
+
+  <section class="context">
+    <h2 id="in-reply-to">In reply to</h2>
+    <ul>
+      <li><a href="https://icwe2020.webengineering.org/call-for-papers/" rel="as:inReplyTo">Call for Papers ICWE2020</a></li>
+    </ul>
+  </section>
+
+  <section id="abstract" inlist="" rel="schema:hasPart" resource="#abstract">
+<div datatype="rdf:HTML" property="schema:description">
+      <h2 property="schema:name">Abstract</h2>
+      <!-- Context      -->
+      <p>Forms with an autocompletion feature are typically driven by Web APIs that filter a collection for every given prefix.
+<!-- Need         -->
+Given the wide variety of possible prefixes, the resulting highly individualized requests hinder caching, which could otherwise reduce server costs.
+<!-- Task         -->
+In order to enable efficient caching, we have investigated file-based fragmentation strategies for Linked Open Datasets optimized for prefix search.
+<!-- Object       -->
+We extended the TREE hypermedia API specification with string-specific relations and implemented a Web API inspired by a B-tree.
+We evaluated this API based on five characteristics: number of requests needed, performance, cache hit ratio, bandwidth consumed and efficiency.
+<!-- Findings     -->
+Despite the fact the number of HTTP requests follows the scalability of the depth of the specific tree, still the number of requests for a dataset with 73k entries is acceptable.
+Over this dataset, and for subsequent queries, 15 results per prefix are in within 150ms, while the cache hit ratio is three times better than a query server.
+With a higher bandwidth (max 25kb per series for our dataset) comes a lower efficiency of ~50%.
+<!-- Conclusion   -->
+At the cost of a higher bandwidth consumption, we have shown a file-based search tree Web API can still guarantee the query performance required for autocompletion while shipping more data than strictly necessary.
+<!-- Perspectives -->
+Also non-measurable characteristics can be thought of, such as a better privacy by design or the ability to federate queries over multiple interfaces.</p>
+
+    </div>
+</section>
+
+  <div class="printonly" style="margin: -0.5em; font-size: 0.9em">HTML version at <a href="http://pieter.pm/icwe2020-autocompletion">http:/​/​pieter.pm/icwe2020-autocompletion</a></div>
+
+</header>
+
+<main>
+  <!-- Add sections by specifying their file name, excluding the '.md' suffix. -->
+  <section id="introduction" inlist="" rel="schema:hasPart" resource="#introduction">
+<div datatype="rdf:HTML" property="schema:description">
+      <h2 property="schema:name">Introduction</h2>
+
+      <!-- Motivation? -->
+      <p>Autocompletion is a user interface feature to select an item from a long list of entities.
+Given a certain prefix, suggestions are provided that match the prefix to an item in the collection.
+Examples of autocompletion tasks on the Web include completing addresses, filling out points of interests such as public transport stops, or finding Wikidata entities.
+A well-established design for autocompletion services is an API that filters a full collection of items on a prefix, such as <code>https:/​/​example.org/{?q}</code>.
+However, for every character typed, this will require the server to process a new prefix query.
+Given the wide variety of possible prefixes, caching becomes hardly possible, and as a result, hosting such an autocompletion service comes at a cost.
+In this paper we study whether the server costs can be lowered by raising the cacheability.</p>
+
+      <p>The idea of <a href="http://linkeddatafragments.org">Linked Data Fragments</a> shows there are more alternative design options than to ship a datadump of the entire collection to the client.
+Instead, a fragmentation strategy can be thought of, where the client takes part in the query evaluation.
+The cacheability will raise, as fragments can be shared among clients and even reused on the same client for the similar queries.
+This comes with interesting opportunities to scale up, such as the possibility to use Content Delivery Networks.
+The first contribution of the paper is that we implemented a public Web API exposing a collection of items in a B-tree structure.
+In order to evaluate this approach, we used the database of all transport stops in Belgium, for which we also published a real query-set based on an access log.
+We evaluate the amount of requests needed, the performance, cache hit-rate, bandwidth consumed and efficiency.
+A secondary contribution is that we extended an in-band hypermedia specification, called the TREE Ontology, for enabling clients to prune their search-space based on a prefix.</p>
+
+    </div>
+</section>
+
+  <section id="sota" inlist="" rel="schema:hasPart" resource="#sota">
+<div datatype="rdf:HTML" property="schema:description">
+      <h2 property="schema:name">State of the art</h2>
+
+      <p>The idea of fragmenting datasets on the Web instead of answering the full query on the server-side is not new.
+Work on different fragmentation strategies have slowly been advancing since 2014.
+While it started with <span property="schema:citation http://purl.org/spar/cito/cites" resource="https://dx.doi.org/doi:10.1016/j.websem.2016.03.003"><a href="http://linkeddatafragments.org/publications/jws2016.pdf">Triple Pattern Fragments (TPF)</a></span> <span class="references">[<a href="#ref-1">1</a>]</span>, different extensions of the simple graph-based fragmentation have been proposed:
+speeding up basic graph patterns on top of TPF with approximate membership metadata <span class="references">[<a href="#ref-2">2</a>]</span>,
+<span property="schema:citation http://purl.org/spar/cito/cites" resource="https://dx.doi.org/10.1007/978-3-319-48472-3_48"><a href="https://arxiv.org/pdf/1608.08148.pdf">binding restricted TPF</a></span> <span class="references">[<a href="#ref-3">3</a>]</span>,
+Linked Connections for public tranport routing <span class="references">[<a href="#ref-4">4</a>]</span> or
+extending the server with time-based querying for archives <span class="references">[<a href="#ref-5">5</a>]</span>.
+So far, no fragmentation strategies have been thought of for string search.</p>
+
+      <p>In <a property="schema:citation http://purl.org/spar/cito/cites" href="https://staff.fnwi.uva.nl/m.derijke/wp-content/papercite-data/pdf/cai-survey-2016.pdf">a survey on Query Auto Completion (QAC)</a> <span class="references">[<a href="#ref-6">6</a>]</span>, the state of the art is introduced.
+It sketches an elaborate overview of the research trends, from heuristic and learning based approaches to raise the relevance of the suggestions, to the computational complexy (on one machine) or how to present results to a user.
+No alternate Web API designs are discussed, where clients could take part in the query execution.
+Furthermore, in order to test the computational complexity, only the complexity of resolving one prefix is considered.
+Nevertheless, a following QAC query could continue on a previous query, and thus have a lower amortized complexity.</p>
+
+      <p>Open source software such as Elastic Search and triple stores such as Virtuoso (<code>bif:contains</code>) or Blazegraph (<code>bds:search</code>), offer full server-side full-text search querying.
+This can be used for autocompletion (e.g., as <a href="https://github.com/pyvandenbussche/lov/blob/master/app/controllers/search.js#L183">is the case in Linked Open Vocabularies</a> <span class="references">[<a href="#ref-7">7</a>]</span>).
+Specialized autocompletion software stacks can also be found, such as <a href="https://github.com/pelias/pelias">Pelias</a>, which extends Elastic Search for address autocompletion and geocoding.
+Particularly interesting is that Pelias also publishes their own <a href="https://github.com/pelias/documentation/blob/master/autocomplete.md">user experience guidelines for autocompletion</a>.
+These include: throttling requests, taking into account possible out of order responses and using a pre-written client on the front-end if possible.
+A limitation that is not discussed is the fact that due to the stateless nature of HTTP, the search algorithm cannot be paused and continued on further user input.
+Instead, for every new request, the whole query execution needs to be re-evaluated.</p>
+
+      <p>The only work we found so far that tried to extend a hypermedia API with text search is <a property="schema:citation http://purl.org/spar/cito/cites" href="https://linkeddatafragments.org/publications/iswc2015-substring.pdf">by Van Herwegen et al</a> <span class="references">[<a href="#ref-8">8</a>]</span>.
+The TPF interface was extended with substring filtering on objects.
+Nevertheless, while the knowledge graph itself is fragmented in pages, a server-side feature was added for querying the data in the same way as the set-up with Elastic Search.
+The hypermedia controls necessary to discover this feature was not developed and the feature was not adopted in the <a property="schema:citation http://purl.org/spar/cito/cites" href="http://comunica.linkeddatafragments.org/">querying SDK Comunica</a> <span class="references">[<a href="#ref-9">9</a>]</span>.</p>
+
+    </div>
+</section>
+
+  <section id="preliminaries" inlist="" rel="schema:hasPart" resource="#preliminaries">
+<div datatype="rdf:HTML" property="schema:description">
+      <h2 property="schema:name">An in-band documented search space</h2>
+
+      <p>In order to enable clients to prune their search space based on hypermedia descriptions beyond simple pagination, we need to come up with a comprehensible specification, as well as describe the client-side algorithm.
+In contrast to the state of the art, we want the specification to describe precisely how the index works, so any client-side query algorithm can benefit without a human developer having to explain how to interpret the responses.</p>
+
+      <p>We have introduced the TREE hypermedia specification depicted in <a href="#tree-ontology">Fig. 1</a>.
+Using the ontology, relations can be described, linking other fragments to the current fragment.
+The description allows for a client to understand that, when following the link, all members of the collection from that page on will respect a certain condition, such as the fact that the name starts with a certain prefix.
+The TREE specification uses the triple-based RDF as its knowledge representation model, enabling different serialization to be used, as well as compatibility with existing Linked Data domain models.
+The full specification can be found in the <a href="https://github.com/pietercolpaert/TreeOntology">TREE specification</a>.</p>
+
+      <figure id="tree-ontology">
+<div style="width:100%; text-align:center">
+<img src="img/tree.svg" alt="The Tree specification" style="width: 70%" />
+</div>
+<figcaption>
+          <p><span class="label">Fig. 1:</span> TREE is a specification to qualify the relation between two pages. It is able to describe to a client whether following a certain page will not be interesting for its current query, and thus whether the client’s search space can be pruned.</p>
+        </figcaption>
+</figure>
+
+      <!--Each page or fragment has a URL which is mentioned in the body of the document.
+This way, a client can use this URL to understand that statements about this subject is metadata about the page.
+This URL is given a type `tree:Node`.-->
+      <p>A <code>tree:Node</code> is linked to a <code>tree:Collection</code>,<!-- though three different predicates: `dcterms:isPartOf`, `void:subset` or `tree:view`.-->
+which can be found from discovery results from W3C specifications such as DCAT, Activity Streams 2.0, Web of Things, Hydra, SPARQL resultsets and Triple Pattern Fragments.
+<!--The first two are equivalent yet inverse predicates, stating this page is part of the full collection.-->
+Only the specific predicate <code>tree:view</code> guarantees that from this node on, all members of the collection can be found.
+<!--The `tree:Collection` can thus be found using this SPARQL property path expression: `?collection void:subset|tree:view|^dcterms:isPartOf <page_url> .`-->
+With the predicate <code>tree:member</code>, elements of this collection can be found in the current page.
+The <code>tree:Node</code> describing the current page is linked with the predicate <code>tree:relation</code> to other pages.
+The object is a subclass of <code>tree:Relation</code>.
+For string search, we have defined the type <code>tree:PrefixRelation</code>.
+A <code>tree:value</code> predicate links a specific string to this relation: the string is a prefix of all further members in the collection.
+The <code>tree:path</code> describes the property path (using the <a href="https://www.w3.org/TR/shacl/#x2.3.1-shacl-property-paths">Shapes Constraints Language (SHACL) Property Paths specification</a>) on which this <code>tree:value</code> applies.
+By default, unicode order is followed, yet specific flags can change the order for options such as case-sensitivity, as <a href="https://github.com/pietercolpaert/TreeOntology/blob/master/specs/2-traversing.md#comparing-strings">documented in the TREE specification</a>.</p>
+
+      <p>Based on the hypermedia specification, <strong>a server</strong> can choose in which way to build up a prefix search space.
+Both dynamic and static API designs are possible. Making the case that even for large datasets server-effort can be limited, we chose to implement this using static files.
+The code to create your own fragmentation using a B-tree approach approach can be found on <a href="https://github.com/Dexagod/linked_data_tree/">a git repository</a>.
+The resulting files can be hosted on any file host, yet Cross Origin Resource Sharing (CORS) headers as well as caching headers need to be configured.
+Our set-up contains uses an nginx reverse proxy cache which enables the necessary headers, compression and CORS headers.
+When updates in the dataset happen, they can often be done locally in the node storing the data, and only that node’s HTTP cache needs to be invalidated.
+In the case when balance needs to be restored, we refer to the state of the art in search tree design to keep the changes as local as possible.</p>
+
+      <p>The <strong>client search algorithm</strong> starts with a URL to a root node that is requested on page load.
+For this node, and every page that is processed, the relations must be extracted as well as the members itself.
+From the moment the user types a prefix, two things happen:
+(i) the list of members is filtered and returned;
+(ii) the list of relations is filtered and processed in a depth first approach.
+Depth first is chosen to be able to show the first suggestions as fast as possible.
+However, when completeness is important during a full-text search, the same API can cater a client doing a breadth first search.
+The code is available on <a href="https://github.com/Dexagod/ldtreeBrowser">this git repository</a>.
+<a href="http://193.190.127.164/site/index.html">An online demo can be tested, applied to the Flemish address database</a>.</p>
+
+    </div>
+</section>
+
+  <section id="results" inlist="" rel="schema:hasPart" resource="#results">
+<div datatype="rdf:HTML" property="schema:description">
+      <h2 property="schema:name">Experiments and results</h2>
+
+      <p>The <em>query server</em> is a server handling the full prefix such as in this URL template: <code>https:/​/​example.org/{?query}</code>.
+The <em>tree approach</em> is the approach introduced in this paper, where a client traverses a search tree for the right prefixes.
+In order to understand the effectiveness of the tree approach, we want to understand the implications on the amount of HTTP requests necessary, the cacheability of these requests, and how this impacts efficiency and bandwidth, based on the size of a dataset in a real-world environment.
+Based on this cacheability and the scalability of the depth of the tree, we can deduct what this means for the user-perceived performance.</p>
+
+      <p>We define an autocompletion query as the full set of HTTP requests needed to find a target.
+For the experiments, a real-world query log was used (available <a href="https://gist.github.com/pietercolpaert/bff29c916c32d264f7d37c50cfb44711">online</a>) that we extracted from a server autocompleting Belgian railway stops at <code>https:/​/​irail.be/stations/NMBS/{?q}</code>.
+We then also republished a B-tree of Belgian public transport stops (6 triples per entity, and a total of 72 967 entites) with a page size (<span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">m</span></span></span></span>) of 25 members and/or relations.
+<!-- TODO in the future we can also use [a streetname autocompletion service of Navitia.io](https://gist.github.com/kinnou02/f896cc2bacde45452bbb4c55d24b415d)) -->
+An extracted example <code>“L” → “Lo” → “Lou” → “Louv” → “Louvai” → “Louvain”</code> needed 6 HTTP requests in the query server approach to find the target station of Louvain.</p>
+
+      <h3 id="amount">Number of requests</h3>
+
+      <p>The best-case amount of HTTP requests needed to autocomplete a prefix is 1, as the target may be contained in the root node.
+When we even consider the fact that the root node is going to be used by <em>any</em> autocompletion task, it should be requested on page load, and not during the autocompletion task itself.
+Therefore, the best-case amortized number of HTTP requests needed to autocomplete a prefix is 0.</p>
+
+      <p>In contrast to a query server, where the number of HTTP requests stays the same when a dataset grows in size, the amount of HTTP requests needed with the tree approach is proportional to the amount of elements in the dataset.
+In case of a B-tree, the number of requests necessary to find elements matching a prefix value is decided based on the height of the tree, which can be calculated theoretically for a dataset of <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord mathdefault">n</span></span></span></span> elements as:
+<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>r</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub><mo>=</mo><mo>&#x230a;</mo><mrow><mi>l</mi><mi>o</mi><msub><mi>g</mi><mrow><mo>&#x2308;</mo><mi>M</mi><mi mathvariant="normal">/</mi><mn>2</mn><mo>&#x2309;</mo></mrow></msub><mo>(</mo><mfrac><mrow><mi>n</mi><mo>+</mo><mn>1</mn></mrow><mn>2</mn></mfrac><mo>)</mo></mrow><mo>&#x230b;</mo></mrow><annotation encoding="application/x-tex">r_{max}=\lfloor{log_{\lceil M/2 \rceil}(\dfrac{n+1}{2})}\rfloor</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">m</span><span class="mord mathdefault mtight">a</span><span class="mord mathdefault mtight">x</span></span></span></span></span><span class="vlist-s">&#x200b;</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.00744em;vertical-align:-0.686em;"></span><span class="mopen">&#x230a;</span><span class="mord"><span class="mord mathdefault" style="margin-right:0.01968em;">l</span><span class="mord mathdefault">o</span><span class="mord"><span class="mord mathdefault" style="margin-right:0.03588em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.34480000000000005em;"><span style="top:-2.5198em;margin-left:-0.03588em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">&#x2308;</span><span class="mord mathdefault mtight" style="margin-right:0.10903em;">M</span><span class="mord mtight">/</span><span class="mord mtight">2</span><span class="mclose mtight">&#x2309;</span></span></span></span></span><span class="vlist-s">&#x200b;</span></span><span class="vlist-r"><span class="vlist" style="height:0.3551999999999999em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.32144em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathdefault">n</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord">1</span></span></span></span><span class="vlist-s">&#x200b;</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mclose">)</span></span><span class="mclose">&#x230b;</span></span></span></span>, with <span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>r</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub></mrow><annotation encoding="application/x-tex">r_{max}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.58056em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault" style="margin-right:0.02778em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">m</span><span class="mord mathdefault mtight">a</span><span class="mord mathdefault mtight">x</span></span></span></span></span><span class="vlist-s">&#x200b;</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> the maximum number of requests necessary, without counting the root node which can be prefetched, and with <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">M</span></span></span></span> the maximum number of children a node can have.
+The depth thus defines the number of HTTP requests needed when only the root node of a tree is found, and this is the first time the auto-completion is being ran, so the client cache is cold.
+With every depth that is added, it takes an exponential (power of <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mi>M</mi><mi mathvariant="normal">/</mi><mn>2</mn></mrow><annotation encoding="application/x-tex">M/2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathdefault" style="margin-right:0.10903em;">M</span><span class="mord">/</span><span class="mord">2</span></span></span></span>) number of elements more to result in an increase in worst-case number of requests necessary.
+Applied to our dataset: with 25 elements per page for a total of <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mn>1</mn><msup><mn>0</mn><mn>5</mn></msup></mrow><annotation encoding="application/x-tex">10^5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.8141079999999999em;vertical-align:0em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141079999999999em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span> elements, a depth of 4 would be needed (<span class="katex"><span class="katex-mathml"><math><semantics><mrow><msub><mi>h</mi><mrow><mi>m</mi><mi>a</mi><mi>x</mi></mrow></msub></mrow><annotation encoding="application/x-tex">h_{max}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathdefault">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathdefault mtight">m</span><span class="mord mathdefault mtight">a</span><span class="mord mathdefault mtight">x</span></span></span></span></span><span class="vlist-s">&#x200b;</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>), and thus 4 HTTP requests would be needed in worst-case to perform an autocompletion.
+When a new query shortly thereafter is done, the probability of being able to cache one of the higher-level nodes should become higher, which is illustrated by <a href="#performance">Fig. 3</a>.
+Our implementation confirms this theoretical analysis.
+For a full series of queries, the experimental results are depicted in <a href="#efficiency">Fig. 4</a>.</p>
+
+      <h3 id="cache">Cache efficiency</h3>
+
+      <p>Considering a static dataset in an interval, we can statically generate the nodes needed and push them to a server-side cache.
+In this case, it is straightforward to achieve a <em>server-side cache hit ratio of 100%</em> as no fragments are served by a back-end application, they can immediately be served by a Content Delivery Network (CDN).
+In <a href="#cachehitratio">Fig. 2</a>, we show the cache hit ratio when the nginx cache is 10% the size of the dataset.
+We tested this for both a query server (baseline) as the TREE approach and notice the TREE approach achieves a three times bigger cache hit rate.</p>
+
+      <figure id="cachehitratio">
+<div style="width:100%; text-align:center">
+<img src="img/servercachehitratio.svg" alt="Cache hit ratio for series of prefix requests" style="width: 60%" />
+</div>
+<figcaption>
+          <p><span class="label">Fig. 2:</span> Average cache hit ratio for applications evaluating series of prefix queries.</p>
+        </figcaption>
+</figure>
+
+      <h3 id="query-performance">Query performance</h3>
+
+      <p>As the TREE approach provides incremental results, we want to see how many results we can achieve within 150ms, a timespan which feels instantaneous to end-users.
+In <a href="#performance">Fig. 3</a> we can see only when typing a first charactar, the approach stays below 10 results.
+For any following character typed, it becomes faster to produce the next results and 15 results can be produced within 150ms.
+For an average query, it will also already show the first results before 50ms.</p>
+
+      <figure id="performance">
+<div style="width:100%; text-align:center">
+<img src="img/realistic.svg" alt="Performance of first three prefix queries of a series that are evaluated over a tree structured fragmentation of a data collection." style="width: 100%" />
+</div>
+<figcaption>
+          <p><span class="label">Fig. 3:</span> Increased performance for subsequent prefix queries evaluated over the same data collection.</p>
+        </figcaption>
+</figure>
+
+      <h3 id="efficiency-and-bandwidth">Efficiency and bandwidth</h3>
+
+      <p>We define the <span property="schema:citation http://purl.org/spar/cito/cites" resource="https://dx.doi.org/doi:10.1016/j.websem.2016.03.003"><a href="http://linkeddatafragments.org/publications/jws2016.pdf">efficiency as “the fraction of data retrieved from the server during the execution of a task over the amount of data required to execute that task”.</a></span> <span class="references">[<a href="#ref-1">1</a>]</span>.
+In a query server approach, developers will aim towards a 100% efficiency.
+At the cost of efficiency, the TREE approach raises the cacheability.
+In <a href="#efficiency">Fig. 4</a>, we discuss the results for how much efficiency we sacrifice and bandwidth the TREE approach consumes.</p>
+
+      <figure id="efficiency">
+<div style="width:100%; text-align:center">
+<img src="img/efficiency.svg" alt="Efficiency and bandwidth use" style="width: 100%" />
+</div>
+<figcaption>
+          <p><span class="label">Fig. 4:</span> The efficiency shows a large quantity of 0% queries. This is due to targets that do not result in an answer (not in the collection).
+For other requests we see the efficiency averages over 50%.
+A max bandwidth of 25kB is consumed for an autocompletion query for this particular dataset and query log.
+The number of requests for a full query autocompletion range from 0 to 20 requests in worst-case.</p>
+        </figcaption>
+</figure>
+
+    </div>
+</section>
+
+  <section id="conclusion" inlist="" rel="schema:hasPart" resource="#conclusion">
+<div datatype="rdf:HTML" property="schema:description">
+      <h2 property="schema:name">Conclusion</h2>
+
+      <!-- Efficiency of our approach: is it worthy to be compared to state of the art? -->
+      <p>A new trade-off has been established, balancing server and client effort, to offer autocompletion over a set of items.
+At the expense of the client having to take part in the query evaluation and consume more bandwidth, the server is off-loaded and can work fully from cache, archive or CDN.
+When using a cache that is 10% the size of the dataset, the TREE approach has a cache hit ratio that is ~3 times better, which means we achieved a server that is offloaded and becomes more cost-efficient.
+We however do not compromise on user-perceived performance.
+<!-- Difference in user experience guidelines-->
+The new client-server relation for prefix search has an effect on the user experience guidelines of Pelias (see <a href="#sota">Section 2</a>).
+(i) Throttling requests became unnecessary.
+When altering the prefix for which no extra HTTP request would be needed, the throttling can be very low.
+In this research we have tried to stay as close as possible as the state of the art, as judging from its adoption, this performance is widely accepted.
+In a similar way, there is also no danger of out of order responses. The client-side algorithm always interrupts the current prefix evaluation to emit responses, but forwards its on-going query processing to the next prefix.
+Last but not least, (iii) using a pre-written client was a guideline when working with the query server design, and remains. Now however, this pre-written client is given more responsibility, and with more responsibility also comes more flexibility to implement the autocompletion or any full-text search feature in just the way you want.</p>
+
+      <!-- Server guidelines for further reference -->
+      <p>Yet, also other guidelines can be thought of based on these results for server administrators.
+(i) The most important of them all will be setting caching headers.
+Both conditional caching with <code>etag header</code>, as setting a <code>cache-control</code> is of utmost importance.
+Do not try to reproduce this research without enabling caching: it is the driver behind the scalability of this approach.
+Next, for public datasets, also (ii) <a href="https://enable-cors.org">Cross Origin Resource Sharing (CORS) headers need to be enabled</a>.
+This will enable application developers to create <em>serverless</em> JavaScript applications.
+While we tested our approach on HTTP/1.1 being the current state of the art protocol, the advent of (iii) HTTP2 and HTTP3 can only work to our advantage, being faster, allowing more parallel requests, and allowing HTTP Push.
+Some of these features can already be enabled in existing HTTP servers.
+<!-- Perspective -->
+Upcoming technologies such as 5G, Web Workers, faster RDF parsers, and HTTP/3 should make the trade-off of higher bandwidth consumption in return for cheaper servers easier to accept.
+Moreover, as a side-effect of a coarser fragmentation strategy, the exact search string of your user is not exposed to a third party server.</p>
+
+    </div>
+</section>
+
+</main>
+
+<footer><section>
+<h2 id="references">References</h2>
+<dl class="references">
+  <dt id="ref-1">[1]</dt>
+  <dd resource="https://dx.doi.org/doi:10.1016/j.websem.2016.03.003" typeof="schema:Article">Verborgh, R., Vander Sande, M., Hartig, O., Van Herwegen, J., De Vocht, L., De Meester, B., Haesendonck, G., Colpaert, P.: Triple Pattern Fragments: a Low-cost Knowledge Graph Interface for the Web. Journal of Web Semantics. 37–38, 184–206 (2016).</dd>
+  <dt id="ref-2">[2]</dt>
+  <dd resource="#vander2015opportunistic" typeof="schema:Article">Vander Sande, M., Verborgh, R., Van Herwegen, J., Mannens, E., Van de Walle, R.: Opportunistic Linked Data querying through approximate membership metadata. In: ISWC. pp. 92–110. Springer (2015).</dd>
+  <dt id="ref-3">[3]</dt>
+  <dd resource="https://dx.doi.org/10.1007/978-3-319-48472-3_48" typeof="schema:Article">Hartig, O., Buil-Aranda, C.: Bindings-Restricted Triple Pattern Fragments. In: Debruyne, C., Panetto, H., Meersman, R., Dillon, T., Kühn, eva, O’Sullivan, D., and Ardagna, C.A. (eds.) Proceedings of the 15th International Conference on Ontologies, DataBases, and Applications of Semantics. pp. 762–779. Springer (2016).</dd>
+  <dt id="ref-4">[4]</dt>
+  <dd resource="#colpaert2017public" typeof="schema:Article">Colpaert, P., Verborgh, R., Mannens, E.: Public transit route planning through lightweight linked data interfaces. In: ICWE. pp. 403–411. Springer (2017).</dd>
+  <dt id="ref-5">[5]</dt>
+  <dd resource="#vander2018toward" typeof="schema:Article">Vander Sande, M., Verborgh, R., Hochstenbach, P., Van de Sompel, H.: Toward sustainable publishing and querying of distributed Linked Data archives. Journal of Documentation. 74, 195–222 (2018).</dd>
+  <dt id="ref-6">[6]</dt>
+  <dd resource="https://staff.fnwi.uva.nl/m.derijke/wp-content/papercite-data/pdf/cai-survey-2016.pdf" typeof="schema:Article">Cai, F., De Rijke, M., others: A survey of query auto completion in information retrieval. Foundations and Trends in Information Retrieval. 10, 273–363 (2016).</dd>
+  <dt id="ref-7">[7]</dt>
+  <dd resource="#lov" typeof="schema:Article">Vandenbussche, P.-Y., Atemezing, G.A., Poveda-Villalón, M., Vatant, B.: Linked Open Vocabularies (LOV): a gateway to reusable semantic vocabularies on the Web. Semantic Web. 8, 437–452 (2017).</dd>
+  <dt id="ref-8">[8]</dt>
+  <dd resource="https://linkeddatafragments.org/publications/iswc2015-substring.pdf" typeof="schema:Article">Van Herwegen, J., De Vocht, L., Verborgh, R., Mannens, E., Van de Walle, R.: Substring Filtering for Low-Cost Linked Data Interfaces. In: Arenas, M., Corcho, O., Simperl, E., Strohmaier, M., d’Aquin, M., Srinivas, K., Groth, P., Dumontier, M., Heflin, J., Thirunarayan, K., and Staab, S. (eds.) Proceedings of the 14th ISWC. pp. 128–143. Springer (2015).</dd>
+  <dt id="ref-9">[9]</dt>
+  <dd resource="http://comunica.linkeddatafragments.org/" typeof="schema:Article">Taelman, R., Van Herwegen, J., Vander Sande, M., Verborgh, R.: Comunica: a modular SPARQL query engine for the web. In: ISWC. pp. 239–255. Springer (2018).</dd>
+</dl>
+</section>
+</footer>
+
+
+
+</body>
+</html>
